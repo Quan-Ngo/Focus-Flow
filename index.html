@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
+    <!-- iOS PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FocusFlow">
+    <meta name="theme-color" content="#f8fafc">
+
+    <!-- App Icons -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3593/3593444.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3593/3593444.png">
+
+    <title>FocusFlow - Private Task Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f8fafc; /* Slate 50 */
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            overflow: hidden;
+            color: #0f172a;
+            /* Support for iOS translucent status bar */
+            padding-top: var(--safe-area-inset-top);
+        }
+        #root {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .task-list-container {
+            padding-bottom: calc(220px + var(--safe-area-inset-bottom));
+            overscroll-behavior-y: contain;
+        }
+        .bottom-action-bar {
+            padding-bottom: calc(1rem + var(--safe-area-inset-bottom));
+        }
+        .task-item {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        input:focus {
+            font-size: 16px;
+        }
+        .task-list-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .task-list-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .task-list-container::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+
+        /* Celebration Animations */
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-rotate-slow {
+            animation: rotate-slow 12s linear infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-1deg); }
+            75% { transform: translateX(5px) rotate(1deg); }
+        }
+        .animate-shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes rainbow-text {
+            0% { color: #facc15; }
+            33% { color: #a855f7; } /* Purple-500 */
+            66% { color: #3b82f6; }
+            100% { color: #facc15; }
+        }
+        .animate-rainbow {
+            animation: rainbow-text 3s linear infinite;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+        .confetti {
+            position: absolute;
+            animation: float-up 2s ease-out forwards;
+        }
+
+        @keyframes shine {
+          0% { transform: translateX(-150%) skewX(-15deg); opacity: 0; }
+          20% { opacity: 0; }
+          40% { opacity: 0.5; }
+          60% { opacity: 0.5; }
+          85% { opacity: 0; }
+          100% { transform: translateX(250%) skewX(-15deg); opacity: 0; }
+        }
+        .animate-shine {
+          animation: shine 5s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); }
+          50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.4); }
+        }
+        .animate-glow {
+          animation: glow 3s ease-in-out infinite;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@dnd-kit/core": "https://esm.sh/@dnd-kit/core@^6.3.1",
+    "@dnd-kit/sortable": "https://esm.sh/@dnd-kit/sortable@^10.0.0",
+    "@dnd-kit/utilities": "https://esm.sh/@dnd-kit/utilities@^3.2.2"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
