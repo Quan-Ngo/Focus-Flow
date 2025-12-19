@@ -23,7 +23,6 @@ export default function App() {
     };
   }, []);
 
-  // 1. Core Logic
   const { 
     tasks, 
     setTasks,
@@ -39,7 +38,6 @@ export default function App() {
     importData
   } = useTaskTracking();
 
-  // 2. Achievement Logic
   const { 
     achievements, 
     earnedCount, 
@@ -47,7 +45,6 @@ export default function App() {
     clearNewlyUnlocked 
   } = useAchievements(tasks, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted);
 
-  // 3. Date Monitor
   useDateChangeDetection((oldDate, newDate) => {
     const d1 = new Date(oldDate);
     const d2 = new Date(newDate);
@@ -56,17 +53,16 @@ export default function App() {
     processNewDay(daysPassed);
   });
 
-  // 4. Derived State
   const totalCount = tasks.length;
   const completedCount = tasks.filter(t => t.completed).length;
   const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-md mx-auto bg-slate-50 relative overflow-hidden shadow-2xl border-x border-slate-100">
-      {/* Offline Banner */}
+      {/* Enhanced Offline Banner */}
       {isOffline && (
-        <div className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1 text-center animate-in slide-in-from-top duration-300">
-          Working Offline
+        <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1.5 text-center sticky top-0 z-[100] shadow-md">
+          FocusFlow Offline Mode
         </div>
       )}
 
