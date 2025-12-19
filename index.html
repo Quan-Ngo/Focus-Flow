@@ -5,14 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     
-    <!-- PWA Primary Color -->
+    <!-- PWA Color -->
     <meta name="theme-color" content="#9333ea">
-    
-    <!-- iOS PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FocusFlow">
-    <meta name="mobile-web-app-capable" content="yes">
 
     <!-- Manifest and Icons -->
     <link rel="manifest" href="manifest.json">
@@ -54,63 +51,19 @@
             font-size: 16px;
         }
 
-        /* Essential Animations */
-        @keyframes rotate-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .animate-rotate-slow {
-            animation: rotate-slow 12s linear infinite;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px) rotate(-1deg); }
-            75% { transform: translateX(5px) rotate(1deg); }
-        }
-        .animate-shake {
-            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
-        }
-
-        @keyframes rainbow-text {
-            0% { color: #facc15; }
-            33% { color: #a855f7; }
-            66% { color: #3b82f6; }
-            100% { color: #facc15; }
-        }
-        .animate-rainbow {
-            animation: rainbow-text 3s linear infinite;
-        }
-
-        @keyframes float-up {
-            0% { transform: translateY(0) scale(1); opacity: 0; }
-            20% { opacity: 1; }
-            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
-        }
-        .confetti {
-            position: absolute;
-            animation: float-up 2s ease-out forwards;
-        }
-
-        @keyframes shine {
-          0% { transform: translateX(-150%) skewX(-15deg); opacity: 0; }
-          20% { opacity: 0; }
-          40% { opacity: 0.5; }
-          60% { opacity: 0.5; }
-          85% { opacity: 0; }
-          100% { transform: translateX(250%) skewX(-15deg); opacity: 0; }
-        }
-        .animate-shine {
-          animation: shine 5s ease-in-out infinite;
-        }
-
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); }
-          50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.4); }
-        }
-        .animate-glow {
-          animation: glow 3s ease-in-out infinite;
-        }
+        /* Animations */
+        @keyframes rotate-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-rotate-slow { animation: rotate-slow 12s linear infinite; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-1deg); } 75% { transform: translateX(5px) rotate(1deg); } }
+        .animate-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes rainbow-text { 0% { color: #facc15; } 33% { color: #a855f7; } 66% { color: #3b82f6; } 100% { color: #facc15; } }
+        .animate-rainbow { animation: rainbow-text 3s linear infinite; }
+        @keyframes float-up { 0% { transform: translateY(0) scale(1); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
+        .confetti { position: absolute; animation: float-up 2s ease-out forwards; }
+        @keyframes shine { 0% { transform: translateX(-150%) skewX(-15deg); opacity: 0; } 20% { opacity: 0; } 40% { opacity: 0.5; } 60% { opacity: 0.5; } 85% { opacity: 0; } 100% { transform: translateX(250%) skewX(-15deg); opacity: 0; } }
+        .animate-shine { animation: shine 5s ease-in-out infinite; }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); } 50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.4); } }
+        .animate-glow { animation: glow 3s ease-in-out infinite; }
     </style>
 <script type="importmap">
 {
@@ -131,6 +84,6 @@
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

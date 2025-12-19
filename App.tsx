@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDateChangeDetection } from './hooks/useDateChangeDetection';
 import { useTaskTracking } from './hooks/useTaskTracking';
 import { useAchievements } from './hooks/useAchievements';
@@ -10,8 +10,20 @@ import { AchievementUnlockToast } from './components/AchievementUnlockToast';
 
 export default function App() {
   const [isAchievementPanelOpen, setIsAchievementPanelOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  // 1. Core Logic: Manage task state and timer logic
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 1. Core Logic
   const { 
     tasks, 
     setTasks,
@@ -27,7 +39,7 @@ export default function App() {
     importData
   } = useTaskTracking();
 
-  // 2. Achievement Logic: Monitor progress and unlock awards
+  // 2. Achievement Logic
   const { 
     achievements, 
     earnedCount, 
@@ -35,34 +47,37 @@ export default function App() {
     clearNewlyUnlocked 
   } = useAchievements(tasks, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted);
 
-  // 3. Date Monitor: Trigger events when the calendar day changes
+  // 3. Date Monitor
   useDateChangeDetection((oldDate, newDate) => {
     const d1 = new Date(oldDate);
     const d2 = new Date(newDate);
-    
-    // Calculate difference in days
     const diffTime = Math.abs(d2.getTime() - d1.getTime());
     const daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    console.log(`[FocusFlow] Date change detected: ${oldDate} -> ${newDate} (${daysPassed} days passed)`);
     processNewDay(daysPassed);
   });
 
-  // 4. Derived State: Calculate progress stats for the UI
+  // 4. Derived State
   const totalCount = tasks.length;
   const completedCount = tasks.filter(t => t.completed).length;
   const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-md mx-auto bg-slate-50 relative overflow-hidden shadow-2xl">
-      {/* Celebration Notification Overlay */}
+    <div className="min-h-screen flex flex-col w-full max-w-md mx-auto bg-slate-50 relative overflow-hidden shadow-2xl border-x border-slate-100">
+      {/* Offline Banner */}
+      {isOffline && (
+        <div className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1 text-center animate-in slide-in-from-top duration-300">
+          Working Offline
+        </div>
+      )}
+
+      {/* Achievement Toast */}
       <AchievementUnlockToast 
         achievement={newlyUnlocked} 
         onClose={clearNewlyUnlocked} 
         totalEarned={earnedCount}
       />
 
-      {/* Identity & Motivation UI */}
+      {/* Header UI */}
       <UserProfileHeader 
         completedCount={completedCount} 
         totalCount={totalCount} 
@@ -74,7 +89,7 @@ export default function App() {
         onImportData={importData}
       />
 
-      {/* Main Task List & Creation UI */}
+      {/* Main Content */}
       <TaskDashboard 
         tasks={tasks} 
         setTasks={setTasks}
@@ -84,7 +99,7 @@ export default function App() {
         onDeleteTask={deleteTask}
       />
 
-      {/* Achievements Slide-up Overlay */}
+      {/* Achievements Overlay */}
       <AchievementPanel 
         isOpen={isAchievementPanelOpen} 
         onClose={() => setIsAchievementPanelOpen(false)} 
