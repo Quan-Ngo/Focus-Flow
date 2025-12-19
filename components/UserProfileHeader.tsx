@@ -1,21 +1,26 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserProfile } from '../types';
 import { UserIcon, LightBulbIcon, TrophyIcon, DownloadIcon, UploadIcon } from './Icons';
 
 const STORAGE_KEY_USER = 'focusflow_user';
 
-const MOTIVATIONAL_QUOTES = [
+const LOCAL_QUOTES = [
   "Small steps lead to big results.",
   "Focus on being productive, not busy.",
   "Your only limit is your mind.",
   "Quality is not an act, it is a habit.",
   "Energy and persistence conquer all.",
-  "The secret is getting started.",
+  "The secret of getting ahead is getting started.",
   "Do something today for your future self.",
   "Focus on the step in front of you.",
   "Progress, not perfection.",
-  "Make today count."
+  "Make today count.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "Don't stop until you're proud.",
+  "Action is the foundational key to all success.",
+  "Your time is limited, don't waste it.",
+  "The best way to predict the future is to create it."
 ];
 
 interface UserProfileHeaderProps {
@@ -42,8 +47,13 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [newName, setNewName] = useState('');
-  const [motivation, setMotivation] = useState<string>(MOTIVATIONAL_QUOTES[0]);
+  const [motivation, setMotivation] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getRandomQuote = useCallback(() => {
+    const randomIndex = Math.floor(Math.random() * LOCAL_QUOTES.length);
+    return LOCAL_QUOTES[randomIndex];
+  }, []);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
@@ -59,8 +69,10 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         console.error("Failed to parse user", e);
       }
     }
-    setMotivation(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
-  }, []);
+    
+    // Set initial local motivation
+    setMotivation(getRandomQuote());
+  }, [getRandomQuote]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
@@ -74,8 +86,8 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   };
 
   const refreshMotivation = () => {
-    const nextIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
-    setMotivation(MOTIVATIONAL_QUOTES[nextIndex]);
+    // Instant local refresh for 100% offline experience
+    setMotivation(getRandomQuote());
   };
 
   return (
@@ -107,27 +119,13 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
             )}
           </button>
 
-          {isEditingName ? (
-            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
-              <input 
-                type="text" 
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="w-20 text-xs focus:outline-none font-medium bg-transparent"
-                autoFocus
-                onBlur={handleUpdateName}
-                onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
-              />
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className={`w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm active:scale-95 transition-transform ${showSettings ? 'ring-2 ring-purple-100' : ''}`}
-              title="Settings"
-            >
-              <UserIcon className="w-5 h-5" />
-            </button>
-          )}
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            className={`w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm active:scale-95 transition-transform ${showSettings ? 'ring-2 ring-purple-100' : ''}`}
+            title="Settings"
+          >
+            <UserIcon className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
@@ -136,8 +134,27 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         <div className="mx-5 mb-4 p-5 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-4">
              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Settings & Data</h4>
-             <button onClick={() => setIsEditingName(true)} className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Edit Name</button>
+             <button 
+                onClick={() => setIsEditingName(!isEditingName)} 
+                className="text-[10px] font-black text-purple-600 uppercase tracking-widest"
+              >
+                {isEditingName ? 'Save' : 'Edit Name'}
+              </button>
           </div>
+
+          {isEditingName ? (
+            <div className="mb-4 flex items-center gap-2 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100">
+              <input 
+                type="text" 
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="flex-grow text-sm font-bold focus:outline-none bg-transparent"
+                autoFocus
+                onBlur={handleUpdateName}
+                onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
+              />
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
              <button 
@@ -145,7 +162,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
                className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group"
              >
                 <DownloadIcon className="w-4 h-4 text-slate-400 group-hover:text-purple-500 transition-colors" />
-                <span className="text-xs font-bold text-slate-600">Export</span>
+                <span className="text-xs font-bold text-slate-600">Backup</span>
              </button>
              <button 
                onClick={() => fileInputRef.current?.click()}
