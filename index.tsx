@@ -3,12 +3,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Standard PWA service worker registration (without Vite-specific virtual modules)
-// This ensures the preview works while maintaining home screen functionality
+// Register service worker with a relative path for offline support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
-      console.log('ServiceWorker registration failed: ', err);
+    navigator.serviceWorker.register('sw.js').then(registration => {
+      console.log('FocusFlow SW registered: ', registration.scope);
+    }).catch(err => {
+      console.log('FocusFlow SW registration failed: ', err);
     });
   });
 }
