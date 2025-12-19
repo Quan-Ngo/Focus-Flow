@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
-import { UserIcon, LightBulbIcon, TrophyIcon, DownloadIcon, UploadIcon, SparklesIcon } from './Icons';
+import { UserIcon, LightBulbIcon, TrophyIcon, DownloadIcon, UploadIcon } from './Icons';
 
 const STORAGE_KEY_USER = 'focusflow_user';
-const APP_VERSION = '1.1.2'; // Update this whenever you add new features!
 
 const MOTIVATIONAL_QUOTES = [
   "Small steps lead to big results.",
@@ -79,13 +78,6 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
     setMotivation(MOTIVATIONAL_QUOTES[nextIndex]);
   };
 
-  const handleForceUpdate = () => {
-    // This forces the browser to check the service worker and reload
-    if (window.confirm("Check for updates and reload the app?")) {
-      window.location.reload();
-    }
-  };
-
   return (
     <>
       {/* Header */}
@@ -115,13 +107,27 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
             )}
           </button>
 
-          <button 
-            onClick={() => setShowSettings(!showSettings)}
-            className={`w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm active:scale-95 transition-transform ${showSettings ? 'ring-2 ring-purple-100' : ''}`}
-            title="Settings"
-          >
-            <UserIcon className="w-5 h-5" />
-          </button>
+          {isEditingName ? (
+            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
+              <input 
+                type="text" 
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="w-20 text-xs focus:outline-none font-medium bg-transparent"
+                autoFocus
+                onBlur={handleUpdateName}
+                onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
+              />
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className={`w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm active:scale-95 transition-transform ${showSettings ? 'ring-2 ring-purple-100' : ''}`}
+              title="Settings"
+            >
+              <UserIcon className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -129,34 +135,17 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       {showSettings && (
         <div className="mx-5 mb-4 p-5 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-4">
-             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile & System</h4>
-             <button onClick={() => setIsEditingName(!isEditingName)} className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
-               {isEditingName ? 'Done' : 'Edit Name'}
-             </button>
+             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Settings & Data</h4>
+             <button onClick={() => setIsEditingName(true)} className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Edit Name</button>
           </div>
 
-          {isEditingName && (
-            <div className="mb-4 flex items-center gap-2 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100">
-              <input 
-                type="text" 
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="flex-grow text-sm font-bold focus:outline-none bg-transparent text-slate-700"
-                autoFocus
-                onBlur={handleUpdateName}
-                onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
-                placeholder="Enter your name..."
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-3">
              <button 
                onClick={onExportData}
                className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group"
              >
                 <DownloadIcon className="w-4 h-4 text-slate-400 group-hover:text-purple-500 transition-colors" />
-                <span className="text-xs font-bold text-slate-600">Backup</span>
+                <span className="text-xs font-bold text-slate-600">Export</span>
              </button>
              <button 
                onClick={() => fileInputRef.current?.click()}
@@ -175,19 +164,6 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
                    if (file) onImportData(file);
                 }}
              />
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">FocusFlow v{APP_VERSION}</span>
-              <span className="text-[8px] font-bold text-slate-300 uppercase">Local Secure Storage</span>
-            </div>
-            <button 
-              onClick={handleForceUpdate}
-              className="px-3 py-1.5 bg-slate-50 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-purple-50 hover:text-purple-600 transition-colors"
-            >
-              Update App
-            </button>
           </div>
         </div>
       )}
