@@ -25,11 +25,11 @@ interface SortableTaskItemProps {
   task: Task;
   onToggleTask: (id: string) => void;
   onToggleTimer: (id: string) => void;
-  onDeleteTask: (id: string) => void;
+  onDeleteRequest: (task: Task) => void;
   formatTime: (seconds: number) => string;
 }
 
-const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteTask, formatTime }: SortableTaskItemProps) => {
+const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, formatTime }: SortableTaskItemProps) => {
   const {
     attributes,
     listeners,
@@ -114,7 +114,7 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteTask, for
           )}
           
           <button 
-            onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+            onClick={(e) => { e.stopPropagation(); onDeleteRequest(task); }}
             className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-400 active:text-red-500 transition-colors"
           >
             <TrashIcon className="w-5 h-5" />
@@ -150,6 +150,7 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({
   const [hInput, setHInput] = useState('');
   const [mInput, setMInput] = useState('');
   const [sInput, setSInput] = useState('');
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
@@ -175,6 +176,13 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({
     onAddTask(taskInput.trim(), parseInt(hInput) || 0, parseInt(mInput) || 0, parseInt(sInput) || 0);
     setTaskInput(''); setHInput(''); setMInput(''); setSInput('');
     inputRef.current?.blur();
+  };
+
+  const confirmDelete = () => {
+    if (taskToDelete) {
+      onDeleteTask(taskToDelete.id);
+      setTaskToDelete(null);
+    }
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -220,7 +228,7 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({
                     task={task} 
                     onToggleTask={onToggleTask}
                     onToggleTimer={onToggleTimer}
-                    onDeleteTask={onDeleteTask}
+                    onDeleteRequest={setTaskToDelete}
                     formatTime={formatTime}
                   />
                 ))}
@@ -229,6 +237,42 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({
           </DndContext>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {taskToDelete && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 ease-out"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mb-6">
+                <TrashIcon className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-800 mb-2">Delete Task?</h3>
+              <p className="text-sm text-slate-500 font-medium mb-8">
+                Are you sure you want to remove <span className="font-bold text-slate-700">"{taskToDelete.title}"</span>? This action cannot be undone.
+              </p>
+              
+              <div className="flex flex-col gap-3 w-full">
+                <button 
+                  onClick={confirmDelete}
+                  className="w-full py-4 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-rose-200 active:scale-95 transition-all"
+                >
+                  Delete Task
+                </button>
+                <button 
+                  onClick={() => setTaskToDelete(null)}
+                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm active:scale-95 transition-all"
+                >
+                  Keep It
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-0 -z-10" onClick={() => setTaskToDelete(null)} />
+        </div>
+      )}
 
       <footer className="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-5 bottom-action-bar bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-10 pointer-events-none">
         <div className="pointer-events-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-2 space-y-2">
