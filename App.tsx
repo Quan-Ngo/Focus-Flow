@@ -59,10 +59,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-md mx-auto bg-slate-50 relative overflow-hidden shadow-2xl border-x border-slate-100">
-      {/* Enhanced Offline Banner */}
+      {/* Absolute Top Offline Banner */}
       {isOffline && (
-        <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1.5 text-center sticky top-0 z-[100] shadow-md">
-          FocusFlow Offline Mode
+        <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 text-center sticky top-0 z-[200] shadow-lg border-b border-amber-400">
+          FocusFlow Offline Mode • Data is Private
         </div>
       )}
 
