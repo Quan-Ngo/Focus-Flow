@@ -27,6 +27,8 @@ interface SortableTaskItemProps {
   onToggleTimer: (id: string) => void;
   onDeleteRequest: (task: Task) => void;
   formatTime: (seconds: number) => string;
+  // Explicitly add key for React 19 prop passing compatibility
+  key?: React.Key;
 }
 
 const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, formatTime }: SortableTaskItemProps) => {

@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'focusflow-v7-final';
+const CACHE_NAME = 'focusflow-v8-update-ready';
 
 // 1. Critical assets for the app shell
 const CORE_ASSETS = [
@@ -9,6 +9,7 @@ const CORE_ASSETS = [
   '/App.tsx',
   '/types.ts',
   '/manifest.json',
+  '/version.json',
   'https://cdn.tailwindcss.com',
   'https://cdn-icons-png.flaticon.com/512/3593/3593444.png'
 ];
@@ -27,14 +28,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[FocusFlow SW] Installing & Caching Shell');
-      // We use addAll for all assets to ensure installation only succeeds if all are cached
       return Promise.allSettled([
         ...CORE_ASSETS.map(url => cache.add(url).catch(e => console.error(`Failed to cache ${url}:`, e))),
         ...ESM_DEPS.map(url => cache.add(url).catch(e => console.error(`Failed to cache dep ${url}:`, e)))
       ]);
     })
   );
-  self.skipWaiting();
+  // We no longer skipWaiting here automatically to allow the UI to control the transition
 });
 
 self.addEventListener('activate', (event) => {
@@ -50,15 +50,36 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Listener for update signals from the UI
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Cache-First Strategy for Offline Reliability
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
+  // Special handling for version check: Network-First
+  if (url.pathname.includes('version.json')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const resClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request, { ignoreSearch: false }).then((cachedResponse) => {
-      // 1. If found in cache, serve it immediately (even if online)
+      // 1. If found in cache, serve it immediately
       if (cachedResponse) {
         // Refresh internal code in background to stay up to date
         if (url.origin === self.location.origin && !url.pathname.includes('manifest')) {
@@ -75,7 +96,6 @@ self.addEventListener('fetch', (event) => {
       return fetch(event.request).then((networkResponse) => {
         if (!networkResponse || networkResponse.status !== 200) return networkResponse;
 
-        // Cache new ESM dependencies or internal files dynamically
         const isInternal = url.origin === self.location.origin;
         const isCDN = url.host === 'esm.sh' || url.host.includes('tailwindcss') || url.host.includes('flaticon');
         
@@ -86,7 +106,6 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
-        // 3. Last Resort: Navigation Fallback
         if (event.request.mode === 'navigate') {
           return caches.match('/') || caches.match('/index.html');
         }

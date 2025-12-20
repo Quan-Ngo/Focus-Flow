@@ -3,14 +3,28 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Register service worker with a relative path for offline support
+// Exported for use in App.tsx update logic
+export let swRegistration: ServiceWorkerRegistration | null = null;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(registration => {
       console.log('FocusFlow SW registered: ', registration.scope);
+      swRegistration = registration;
+      
+      // Check for updates every 30 minutes in the background
+      setInterval(() => {
+        registration.update();
+      }, 1000 * 60 * 30);
+
     }).catch(err => {
       console.log('FocusFlow SW registration failed: ', err);
     });
+  });
+
+  // Reload the page when the new service worker takes over
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
   });
 }
 

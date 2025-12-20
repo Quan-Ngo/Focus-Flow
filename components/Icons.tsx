@@ -1,7 +1,8 @@
 
 import React from 'react';
 
-type IconProps = { className?: string; style?: React.CSSProperties };
+// Add key to IconProps to support React 19 where key is a regular prop
+type IconProps = { className?: string; style?: React.CSSProperties; key?: React.Key };
 
 export const CheckIcon = ({ className = "w-6 h-6", style }: IconProps) => (
   <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className} style={style}>
