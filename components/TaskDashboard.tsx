@@ -82,7 +82,7 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
         </div>
         
         <div className="flex-grow min-w-0 cursor-pointer" onClick={() => onToggleTask(task.id)}>
-          <div className="flex items-center gap-2 overflow-hidden py-1">
+          <div className="flex items-center gap-2 py-1.5">
             <span className={`font-semibold text-[15px] leading-tight truncate transition-all ${task.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
               {task.title}
             </span>
