@@ -188,22 +188,21 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
           <div className="absolute top-0 bottom-0 left-[-100%] w-[60%] bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine pointer-events-none"></div>
           
           <div className="flex items-center justify-between relative z-10 w-full mb-6">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-4">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-extrabold leading-tight truncate">Hi, {user.name}</h2>
               </div>
               <div 
                 onClick={() => setShowXpDetails(!showXpDetails)}
-                className="inline-flex flex-col cursor-pointer group active:scale-95 transition-transform"
+                className="flex flex-col cursor-pointer group active:scale-95 transition-transform w-full overflow-hidden"
               >
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black drop-shadow-sm">Level {user.level}</span>
-                  <span className="text-purple-100 text-[10px] font-black uppercase tracking-widest opacity-80 group-hover:opacity-100">
-                    Focused Explorer
+                <div className="flex items-baseline overflow-hidden">
+                  <span className="text-3xl sm:text-4xl font-black drop-shadow-sm whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
+                    Level {user.level}
                   </span>
                 </div>
                 {!showXpDetails && (
-                   <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mt-1 animate-pulse">Tap for progress</p>
+                   <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mt-1 animate-pulse whitespace-nowrap">Tap for progress</p>
                 )}
               </div>
             </div>
