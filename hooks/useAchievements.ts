@@ -11,6 +11,15 @@ const MASTER_ACHIEVEMENTS: Achievement[] = [
   { id: 'completed_20', title: 'Elite Doer', description: 'Complete a total of 20 tasks.', icon: '🏅', condition: 'total_completed_20' },
   { id: 'completed_50', title: 'Task Master', description: 'Complete a total of 50 tasks.', icon: '💎', condition: 'total_completed_50' },
   
+  // Level Milestones
+  { id: 'level_3', title: 'Novice Focused', description: 'Reach level 3.', icon: '🌱', condition: 'level_3' },
+  { id: 'level_10', title: 'Apprentice Planner', description: 'Reach level 10.', icon: '📂', condition: 'level_10' },
+  { id: 'level_15', title: 'Habit Builder', description: 'Reach level 15.', icon: '🧱', condition: 'level_15' },
+  { id: 'level_20', title: 'Discipline Master', description: 'Reach level 20.', icon: '⚔️', condition: 'level_20' },
+  { id: 'level_30', title: 'Productivity Legend', description: 'Reach level 30.', icon: '📜', condition: 'level_30' },
+  { id: 'level_40', title: 'Time Architect', description: 'Reach level 40.', icon: '🏛️', condition: 'level_40' },
+  { id: 'level_100', title: 'Absolute Flow', description: 'Reach level 100.', icon: '🌌', condition: 'level_100' },
+
   // Daily Milestones
   { id: 'daily_3', title: 'Productive Day', description: 'Finish 3 tasks in a single day.', icon: '⚡', condition: 'daily_3' },
   { id: 'daily_5', title: 'Velocity', description: 'Finish 5 tasks in a single day.', icon: '🚀', condition: 'daily_5' },
@@ -35,7 +44,13 @@ const MASTER_ACHIEVEMENTS: Achievement[] = [
   { id: 'time_20h', title: 'Focus Legend', description: 'Spend 20 hours focusing on tasks.', icon: '👑', condition: 'total_time_72000' }
 ];
 
-export function useAchievements(tasks: Task[], totalSecondsSpent: number, lifetimeTasksCompleted: number, dailyTasksCompleted: number) {
+export function useAchievements(
+  tasks: Task[], 
+  totalSecondsSpent: number, 
+  lifetimeTasksCompleted: number, 
+  dailyTasksCompleted: number,
+  currentLevel: number
+) {
   const [earnedIds, setEarnedIds] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_ACHIEVEMENTS);
     if (saved) {
@@ -84,6 +99,17 @@ export function useAchievements(tasks: Task[], totalSecondsSpent: number, lifeti
     if (lifetimeTasksCompleted >= 20) unlock('completed_20');
     if (lifetimeTasksCompleted >= 50) unlock('completed_50');
   }, [lifetimeTasksCompleted, unlock]);
+
+  // Monitor levels
+  useEffect(() => {
+    if (currentLevel >= 3) unlock('level_3');
+    if (currentLevel >= 10) unlock('level_10');
+    if (currentLevel >= 15) unlock('level_15');
+    if (currentLevel >= 20) unlock('level_20');
+    if (currentLevel >= 30) unlock('level_30');
+    if (currentLevel >= 40) unlock('level_40');
+    if (currentLevel >= 100) unlock('level_100');
+  }, [currentLevel, unlock]);
 
   // Monitor daily tasks completed
   useEffect(() => {

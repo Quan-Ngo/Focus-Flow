@@ -23,6 +23,8 @@ export interface Achievement {
 export interface UserProfile {
   name: string;
   icon?: string; // Emoji or logo identifier
+  level: number;
+  xp: number;
 }
 
 export type ThemeType = 'light' | 'dark';
