@@ -1,17 +1,20 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Task, UserProfile } from '../types';
-import { updateProfileOnCompletion } from '../services/levelService';
+import { Task } from '../types';
 
 const STORAGE_KEY_TASKS = 'focusflow_tasks';
 const STORAGE_KEY_TOTAL_TIME = 'focusflow_total_time';
 const STORAGE_KEY_LIFETIME_COMPLETED = 'focusflow_lifetime_completed';
 const STORAGE_KEY_DAILY_COMPLETED = 'focusflow_daily_completed';
-const STORAGE_KEY_USER = 'focusflow_user';
 
+// --- Background Audio Keep-Alive Logic ---
 let audioCtx: AudioContext | null = null;
 let silentOscillator: OscillatorNode | null = null;
 
+/**
+ * iOS suspends JS when the screen locks. 
+ * Playing "silence" via Web Audio keeps the process alive.
+ */
 const startBackgroundKeepAlive = () => {
   try {
     if (!audioCtx) {
@@ -21,9 +24,10 @@ const startBackgroundKeepAlive = () => {
       audioCtx.resume();
     }
     
+    // Create a silent oscillator
     if (!silentOscillator) {
       const gainNode = audioCtx.createGain();
-      gainNode.gain.value = 0.001;
+      gainNode.gain.value = 0.001; // Effectively silent
       
       silentOscillator = audioCtx.createOscillator();
       silentOscillator.type = 'sine';
@@ -53,52 +57,37 @@ const playCompletionSound = () => {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
+    
     if (audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
 
     const now = audioCtx.currentTime;
+    
     const playTone = (freq: number, startTime: number, volume: number) => {
       if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
+      
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, startTime);
+      
       gain.gain.setValueAtTime(0, startTime);
       gain.gain.linearRampToValueAtTime(volume, startTime + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 1.5);
+      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
+      
       osc.start(startTime);
       osc.stop(startTime + 1.6);
     };
 
-    playTone(880, now, 0.1);
-    playTone(1108.73, now + 0.1, 0.08);
+    playTone(880, now, 0.1); // A5
+    playTone(1108.73, now + 0.1, 0.08); // C#6
   } catch (e) {
     console.warn("Audio playback failed", e);
   }
-};
-
-const playLevelUpSound = () => {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const now = audioCtx.currentTime;
-    const tones = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-    tones.forEach((freq, i) => {
-      const osc = audioCtx!.createOscillator();
-      const gain = audioCtx!.createGain();
-      osc.frequency.setValueAtTime(freq, now + i * 0.1);
-      gain.gain.setValueAtTime(0, now + i * 0.1);
-      // Corrected AudioParam method names to use standard Web Audio API ramp methods
-      gain.gain.linearRampToValueAtTime(0.1, now + i * 0.1 + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.6);
-      osc.connect(gain);
-      gain.connect(audioCtx!.destination);
-      osc.start(now + i * 0.1);
-      osc.stop(now + i * 0.1 + 0.7);
-    });
-  } catch (e) {}
 };
 
 export function useTaskTracking() {
@@ -108,39 +97,16 @@ export function useTaskTracking() {
   const [dailyTasksCompleted, setDailyTasksCompleted] = useState<number>(0);
   const lastTickRef = useRef<number>(Date.now());
 
-  const handleTaskFinished = useCallback((finishedTask: Task) => {
-    setLifetimeTasksCompleted(prev => prev + 1);
-    setDailyTasksCompleted(prev => prev + 1);
-
-    playCompletionSound();
-    if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
-
-    const savedUser = localStorage.getItem(STORAGE_KEY_USER);
-    const currentUser: UserProfile = savedUser 
-      ? JSON.parse(savedUser) 
-      : { name: 'Explorer', icon: 'F', level: 1, xp: 0 };
-
-    const { user: updatedUser, leveledUp } = updateProfileOnCompletion(currentUser, finishedTask);
-    
-    if (leveledUp) {
-      setTimeout(() => {
-        playLevelUpSound();
-        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 300]);
-      }, 500);
-    }
-
-    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
-    window.dispatchEvent(new CustomEvent('user-profile-updated', { 
-      detail: { ...updatedUser, leveledUp } 
-    }));
-  }, []);
-
+  // Load and Migrate
   useEffect(() => {
     const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS);
     if (savedTasks) {
       try {
         const parsedTasks = JSON.parse(savedTasks);
-        setTasks(parsedTasks.map((t: any) => ({ ...t, isRunning: false })));
+        setTasks(parsedTasks.map((t: any) => ({ 
+          ...t,
+          isRunning: false // Reset running state on boot for safety
+        })));
       } catch (e) { console.error("Failed to parse tasks", e); }
     }
 
@@ -154,6 +120,7 @@ export function useTaskTracking() {
     if (savedDaily) setDailyTasksCompleted(parseInt(savedDaily) || 0);
   }, []);
 
+  // Persist
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
   }, [tasks]);
@@ -164,11 +131,14 @@ export function useTaskTracking() {
     localStorage.setItem(STORAGE_KEY_DAILY_COMPLETED, dailyTasksCompleted.toString());
   }, [totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted]);
 
+  // Accurate Timer logic
   const tick = useCallback(() => {
     const now = Date.now();
+    
     setTasks(currentTasks => {
+      let newlyFinishedCount = 0;
       let anyStillRunning = false;
-      let finishedTasksInThisTick: Task[] = [];
+      let shouldPlaySound = false;
 
       const nextTasks = currentTasks.map(task => {
         if (!task.isRunning || task.completed || !task.timerEndTime) return task;
@@ -177,47 +147,62 @@ export function useTaskTracking() {
         const secondsRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
 
         if (secondsRemaining <= 0) {
-          const updatedTask = { ...task, remainingSeconds: 0, isRunning: false, completed: true, timerEndTime: undefined };
-          finishedTasksInThisTick.push(updatedTask);
-          return updatedTask;
+          newlyFinishedCount++;
+          shouldPlaySound = true;
+          return { ...task, remainingSeconds: 0, isRunning: false, completed: true, timerEndTime: undefined };
         }
 
         anyStillRunning = true;
         return { ...task, remainingSeconds: secondsRemaining };
       });
 
-      finishedTasksInThisTick.forEach(task => handleTaskFinished(task));
-
-      if (anyStillRunning || finishedTasksInThisTick.length > 0) {
-        const deltaSeconds = Math.round((now - lastTickRef.current) / 1000);
-        if (deltaSeconds > 0) setTotalSecondsSpent(prev => prev + deltaSeconds);
+      // Handle sound and haptics
+      if (shouldPlaySound) {
+        playCompletionSound();
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+        setLifetimeTasksCompleted(prev => prev + newlyFinishedCount);
+        setDailyTasksCompleted(prev => prev + newlyFinishedCount);
       }
 
-      if (!anyStillRunning) stopBackgroundKeepAlive();
+      // Track seconds spent (only if actually running)
+      if (anyStillRunning || newlyFinishedCount > 0) {
+        const deltaSeconds = Math.round((now - lastTickRef.current) / 1000);
+        if (deltaSeconds > 0) {
+          setTotalSecondsSpent(prev => prev + deltaSeconds);
+        }
+      }
+
+      if (!anyStillRunning) {
+        stopBackgroundKeepAlive();
+      }
+
       lastTickRef.current = now;
       return nextTasks;
     });
-  }, [handleTaskFinished]);
+  }, []);
 
+  // Primary Heartbeat
   useEffect(() => {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [tick]);
 
+  // Watch for visibility changes (Phone Unlocked) to force immediate sync
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         lastTickRef.current = Date.now();
         tick();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [tick]);
 
   const addTask = (title: string, hours: number, minutes: number, seconds: number) => {
     const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
     const hasDuration = totalSeconds > 0;
+
     const newTask: Task = {
       id: crypto.randomUUID(),
       title,
@@ -228,6 +213,7 @@ export function useTaskTracking() {
       isRunning: false,
       streak: 0,
     };
+
     setTasks(prev => [newTask, ...prev]);
   };
 
@@ -236,9 +222,16 @@ export function useTaskTracking() {
       if (task.id === id) {
         const nextCompleted = !task.completed;
         if (nextCompleted) {
-          handleTaskFinished(task);
+          setLifetimeTasksCompleted(count => count + 1);
+          setDailyTasksCompleted(count => count + 1);
+          playCompletionSound();
         }
-        return { ...task, completed: nextCompleted, isRunning: false, timerEndTime: undefined };
+        return { 
+          ...task, 
+          completed: nextCompleted, 
+          isRunning: false,
+          timerEndTime: undefined 
+        };
       }
       return task;
     }));
@@ -247,19 +240,29 @@ export function useTaskTracking() {
   const toggleTimer = (id: string) => {
     setTasks(prev => {
       const isStart = !prev.find(t => t.id === id)?.isRunning;
+      
       if (isStart) {
         startBackgroundKeepAlive();
         lastTickRef.current = Date.now();
       }
+
       const nextTasks = prev.map(task => {
         if (task.id === id && !task.completed) {
           const nextRunning = !task.isRunning;
-          const endTime = nextRunning ? Date.now() + (task.remainingSeconds || 0) * 1000 : undefined;
+          const endTime = nextRunning 
+            ? Date.now() + (task.remainingSeconds || 0) * 1000 
+            : undefined;
+          
           return { ...task, isRunning: nextRunning, timerEndTime: endTime };
         }
         return task;
       });
-      if (!nextTasks.some(t => t.isRunning)) stopBackgroundKeepAlive();
+
+      // If no tasks are running after toggle, kill keep-alive
+      if (!nextTasks.some(t => t.isRunning)) {
+        stopBackgroundKeepAlive();
+      }
+
       return nextTasks;
     });
   };
@@ -278,11 +281,19 @@ export function useTaskTracking() {
       stopBackgroundKeepAlive();
       return prev.map(task => {
         let newStreak = task.streak || 0;
-        if (daysPassed === 1 && task.completed) newStreak += 1;
-        else newStreak = 0;
+        if (daysPassed === 1 && task.completed) {
+          newStreak += 1;
+        } else {
+          newStreak = 0;
+        }
+
         return { 
-          ...task, completed: false, isRunning: false, streak: newStreak, 
-          timerEndTime: undefined, remainingSeconds: task.duration ? Math.round(task.duration * 60) : undefined 
+          ...task, 
+          completed: false, 
+          isRunning: false,
+          streak: newStreak,
+          timerEndTime: undefined,
+          remainingSeconds: task.duration ? Math.round(task.duration * 60) : undefined 
         };
       });
     });
@@ -290,10 +301,13 @@ export function useTaskTracking() {
 
   const exportData = () => {
     const data = {
-      tasks, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted,
+      tasks,
+      totalSecondsSpent,
+      lifetimeTasksCompleted,
+      dailyTasksCompleted,
       achievements: JSON.parse(localStorage.getItem('focusflow_achievements') || '{}'),
-      user: JSON.parse(localStorage.getItem(STORAGE_KEY_USER) || '{"name":"Explorer","level":1,"xp":0}'),
-      version: '1.2.6'
+      user: JSON.parse(localStorage.getItem('focusflow_user') || '{"name":"Explorer"}'),
+      version: '1.2'
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -315,18 +329,29 @@ export function useTaskTracking() {
           setLifetimeTasksCompleted(data.lifetimeTasksCompleted || 0);
           setDailyTasksCompleted(data.dailyTasksCompleted || 0);
           localStorage.setItem('focusflow_achievements', JSON.stringify(data.achievements || {}));
-          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user || { name: 'Explorer', level: 1, xp: 0 }));
+          localStorage.setItem('focusflow_user', JSON.stringify(data.user || { name: 'Explorer' }));
           alert('Data restored successfully!');
           window.location.reload();
         }
-      } catch (err) { alert('Invalid backup file'); }
+      } catch (err) {
+        alert('Invalid backup file');
+      }
     };
     reader.readAsText(file);
   };
 
   return { 
-    tasks, setTasks, addTask, toggleTask, toggleTimer, deleteTask, 
-    processNewDay, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted, 
-    exportData, importData 
+    tasks, 
+    setTasks, 
+    addTask, 
+    toggleTask, 
+    toggleTimer, 
+    deleteTask, 
+    processNewDay,
+    totalSecondsSpent,
+    lifetimeTasksCompleted,
+    dailyTasksCompleted,
+    exportData,
+    importData
   };
 }

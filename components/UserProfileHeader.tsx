@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserProfile } from '../types';
 import { UserIcon, LightBulbIcon, TrophyIcon, DownloadIcon, UploadIcon } from './Icons';
-import { getXPToNextLevel } from '../services/levelService';
 
 const STORAGE_KEY_USER = 'focusflow_user';
 
@@ -44,10 +43,9 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   onExportData,
   onImportData
 }) => {
-  const [user, setUser] = useState<UserProfile>({ name: 'Explorer', icon: 'F', level: 1, xp: 0 });
+  const [user, setUser] = useState<UserProfile>({ name: 'Explorer', icon: 'F' });
   const [isEditingName, setIsEditingName] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showXpDetails, setShowXpDetails] = useState(false);
   const [newName, setNewName] = useState('');
   const [motivation, setMotivation] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,57 +55,48 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
     return LOCAL_QUOTES[randomIndex];
   }, []);
 
-  const syncUserFromStorage = useCallback(() => {
+  useEffect(() => {
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
         setUser({
           name: userData.name || 'Explorer',
-          icon: userData.icon || 'F',
-          level: userData.level || 1,
-          xp: userData.xp || 0
+          icon: userData.icon || 'F'
         });
         setNewName(userData.name);
       } catch (e) {
         console.error("Failed to parse user", e);
       }
     }
-  }, []);
+    
+    // Set initial local motivation
+    setMotivation(getRandomQuote());
+  }, [getRandomQuote]);
 
   useEffect(() => {
-    syncUserFromStorage();
-    setMotivation(getRandomQuote());
-
-    const handleProfileUpdate = (e: any) => {
-      if (e.detail) setUser(e.detail);
-    };
-    window.addEventListener('user-profile-updated', handleProfileUpdate);
-    return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
-  }, [getRandomQuote, syncUserFromStorage]);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+  }, [user]);
 
   const handleUpdateName = () => {
     if (newName.trim()) {
-      const updatedUser = { ...user, name: newName.trim() };
-      setUser(updatedUser);
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
+      setUser(prev => ({ ...prev, name: newName.trim() }));
       setIsEditingName(false);
     }
   };
 
-  const refreshMotivation = () => setMotivation(getRandomQuote());
-
-  const xpToNext = getXPToNextLevel(user.level);
-  const xpPercentage = Math.round((user.xp / xpToNext) * 100);
+  const refreshMotivation = () => {
+    // Instant local refresh for 100% offline experience
+    setMotivation(getRandomQuote());
+  };
 
   return (
     <>
+      {/* Header */}
       <header className="px-5 pt-6 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative group">
-            <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-purple-100 transition-all duration-500 group-hover:rotate-12">
-              {user.icon || 'F'}
-            </div>
+          <div className="w-9 h-9 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-purple-100 transition-all duration-500 hover:rotate-12">
+            {user.icon || 'F'}
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-800 leading-none">FocusFlow</h1>
@@ -116,6 +105,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Achievement Toggle */}
           <button 
             onClick={onOpenAchievements}
             className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-amber-500 shadow-sm active:scale-95 transition-transform relative"
@@ -139,6 +129,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         </div>
       </header>
 
+      {/* Settings Dropdown Overlay */}
       {showSettings && (
         <div className="mx-5 mb-4 p-5 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-4">
@@ -151,7 +142,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
               </button>
           </div>
 
-          {isEditingName && (
+          {isEditingName ? (
             <div className="mb-4 flex items-center gap-2 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100">
               <input 
                 type="text" 
@@ -163,84 +154,78 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
               />
             </div>
-          )}
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
-             <button onClick={onExportData} className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group">
-                <DownloadIcon className="w-4 h-4 text-slate-400 group-hover:text-purple-500" />
+             <button 
+               onClick={onExportData}
+               className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group"
+             >
+                <DownloadIcon className="w-4 h-4 text-slate-400 group-hover:text-purple-500 transition-colors" />
                 <span className="text-xs font-bold text-slate-600">Backup</span>
              </button>
-             <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group">
-                <UploadIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+             <button 
+               onClick={() => fileInputRef.current?.click()}
+               className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group"
+             >
+                <UploadIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
                 <span className="text-xs font-bold text-slate-600">Restore</span>
              </button>
-             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => {
-               const file = e.target.files?.[0];
-               if (file) onImportData(file);
-             }} />
+             <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept=".json"
+                onChange={(e) => {
+                   const file = e.target.files?.[0];
+                   if (file) onImportData(file);
+                }}
+             />
           </div>
         </div>
       )}
 
+      {/* Hero Section */}
       <div className="px-5 pt-2">
         <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-fuchsia-500 rounded-[2.5rem] p-6 text-white shadow-xl shadow-purple-200/50 relative overflow-hidden animate-glow">
           <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
           <div className="absolute top-0 bottom-0 left-[-100%] w-[60%] bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine pointer-events-none"></div>
           
-          <div className="flex items-center justify-between relative z-10 w-full mb-6">
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+          
+          <div className="flex items-center justify-between relative z-10 w-full">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-extrabold leading-tight truncate">Hi, {user.name}</h2>
               </div>
-              <div 
-                onClick={() => setShowXpDetails(!showXpDetails)}
-                className="inline-flex flex-col cursor-pointer group active:scale-95 transition-transform"
-              >
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black drop-shadow-sm">Level {user.level}</span>
-                  <span className="text-purple-100 text-[10px] font-black uppercase tracking-widest opacity-80 group-hover:opacity-100">
-                    Focused Explorer
-                  </span>
-                </div>
-                {!showXpDetails && (
-                   <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mt-1 animate-pulse">Tap for progress</p>
-                )}
+              
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-purple-100 text-sm font-medium">
+                  {totalCount === 0 ? "Ready to focus?" : `${completedCount}/${totalCount} tasks done`}
+                </p>
+              </div>
+              
+              <div onClick={refreshMotivation} className="mt-4 flex items-start gap-2 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 active:scale-[0.98] transition-all cursor-pointer">
+                <LightBulbIcon className="w-4 h-4 text-purple-200 shrink-0 mt-0.5" />
+                <p className="text-xs font-medium leading-tight text-white">{motivation}</p>
               </div>
             </div>
 
-            <div className="relative w-16 h-16 shrink-0">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle className="text-white/20 stroke-current" strokeWidth="10" fill="transparent" r="40" cx="50" cy="50" />
-                <circle 
-                  className="text-white stroke-current transition-all duration-1000 ease-out" 
-                  strokeWidth="10" 
-                  strokeDasharray={2 * Math.PI * 40}
-                  strokeDashoffset={2 * Math.PI * 40 * (1 - progressPercentage / 100)}
-                  strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50" 
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-xs font-bold">{progressPercentage}%</div>
+            <div className="flex flex-col items-center gap-2 ml-4 shrink-0">
+              <div className="relative w-16 h-16">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle className="text-white/20 stroke-current" strokeWidth="10" fill="transparent" r="40" cx="50" cy="50" />
+                  <circle 
+                    className="text-white stroke-current transition-all duration-1000 ease-out" 
+                    strokeWidth="10" 
+                    strokeDasharray={2 * Math.PI * 40}
+                    strokeDashoffset={2 * Math.PI * 40 * (1 - progressPercentage / 100)}
+                    strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50" 
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-xs font-bold">{progressPercentage}%</div>
+              </div>
             </div>
-          </div>
-
-          {showXpDetails && (
-            <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 mb-4 animate-in slide-in-from-top-2 duration-300">
-               <div className="flex items-center justify-between mb-1.5 px-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Goal</span>
-                  <span className="text-[10px] font-black text-white">{xpPercentage}% to Level {user.level + 1}</span>
-               </div>
-               <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700"
-                    style={{ width: `${xpPercentage}%` }}
-                  ></div>
-               </div>
-            </div>
-          )}
-
-          <div onClick={refreshMotivation} className="relative z-10 flex items-start gap-2 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 active:scale-[0.98] transition-all cursor-pointer">
-            <LightBulbIcon className="w-4 h-4 text-purple-200 shrink-0 mt-0.5" />
-            <p className="text-xs font-medium leading-tight text-white">{motivation}</p>
           </div>
         </div>
       </div>
