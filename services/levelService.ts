@@ -8,13 +8,17 @@ export const PROGRESSION_CONFIG = {
 
 /**
  * Calculates how much XP a task is worth upon completion.
+ * Includes a streak multiplier: exp_earned * (1 + (current_streak_of_task * 0.5)/100)
  */
 export const calculateXPGain = (task: Task): number => {
-  if (task.duration) {
-    // 1 XP per minute spent
-    return Math.round(task.duration * PROGRESSION_CONFIG.XP_PER_MINUTE);
-  }
-  return PROGRESSION_CONFIG.XP_PER_SIMPLE_TASK;
+  const baseXP = task.duration
+    ? Math.round(task.duration * PROGRESSION_CONFIG.XP_PER_MINUTE)
+    : PROGRESSION_CONFIG.XP_PER_SIMPLE_TASK;
+
+  const streak = task.streak || 0;
+  const streakMultiplier = 1 + (streak * 0.5) / 100;
+  
+  return Math.round(baseXP * streakMultiplier);
 };
 
 /**
