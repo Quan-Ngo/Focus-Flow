@@ -8,7 +8,7 @@ const STORAGE_KEY_USER = 'focusflow_user';
 
 // --- DEBUG TOGGLE ---
 // Set to false to visually hide debug buttons in the settings panel
-const SHOW_DEBUG_CONTROLS = true; 
+const SHOW_DEBUG_CONTROLS = false; 
 // -------------------
 
 const LOCAL_QUOTES = [
@@ -120,8 +120,8 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
   const xpToNext = getXPToNextLevel(user.level);
   const rawXpPercentage = (user.xp / xpToNext) * 100;
   const xpPercentage = isFinite(rawXpPercentage) ? Math.round(rawXpPercentage) : 0;
-  console.log("curr exp: " + user.xp);
-  console.log("exp to next: " + xpToNext);
+  //console.log("curr exp: " + user.xp);
+  //console.log("exp to next: " + xpToNext);
   return (
     <>
       <header className="px-5 pt-6 pb-4 flex items-center justify-between">
