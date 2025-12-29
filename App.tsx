@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDateChangeDetection } from './hooks/useDateChangeDetection';
 import { useTaskTracking } from './hooks/useTaskTracking';
 import { useAchievements } from './hooks/useAchievements';
@@ -7,6 +7,7 @@ import { UserProfileHeader } from './components/UserProfileHeader';
 import { AchievementPanel } from './components/AchievementPanel';
 import { AchievementUnlockToast } from './components/AchievementUnlockToast';
 import { LevelUpCelebration } from './components/LevelUpCelebration';
+import { XPCompletionToast } from './components/XPCompletionToast';
 import { SparklesIcon } from './components/Icons';
 
 const APP_VERSION = '1.2.0'; 
@@ -17,6 +18,11 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [celebratingLevel, setCelebratingLevel] = useState<number | null>(null);
   const [currentLevel, setCurrentLevel] = useState<number>(1);
+  const [lastXPUpdate, setLastXPUpdate] = useState<{ xpGained: number; streak: number } | null>(null);
+
+  const handleXPToastClose = useCallback(() => {
+    setLastXPUpdate(null);
+  }, []);
 
   useEffect(() => {
     // Initial load of current level
@@ -31,8 +37,17 @@ export default function App() {
     const handleProfileUpdate = (e: any) => {
       if (e.detail) {
         if (e.detail.level) setCurrentLevel(e.detail.level);
+        if (e.detail.xpGained) {
+          setLastXPUpdate({ 
+            xpGained: e.detail.xpGained, 
+            streak: e.detail.streak || 0 
+          });
+        }
         if (e.detail.leveledUp) {
-          setCelebratingLevel(e.detail.level);
+          // Delay level up celebration slightly to let XP toast breathe
+          setTimeout(() => {
+            setCelebratingLevel(e.detail.level);
+          }, 1500);
         }
       }
     };
@@ -140,6 +155,14 @@ export default function App() {
         </div>
       )}
 
+      {/* XP Toast appears first and briefly at the bottom */}
+      <XPCompletionToast 
+        xpGained={lastXPUpdate?.xpGained || 0} 
+        streak={lastXPUpdate?.streak || 0}
+        onClose={handleXPToastClose}
+      />
+
+      {/* Achievement Toast is more central/prominent, handled with built-in logic */}
       <AchievementUnlockToast 
         achievement={newlyUnlocked} 
         onClose={clearNewlyUnlocked} 

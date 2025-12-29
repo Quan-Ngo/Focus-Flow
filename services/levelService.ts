@@ -84,7 +84,7 @@ export const processLeveling = (
 export const updateProfileOnCompletion = (
   user: UserProfile,
   task: Task
-): { user: UserProfile; leveledUp: boolean } => {
+): { user: UserProfile; leveledUp: boolean; xpGained: number } => {
   const xpGained = calculateXPGain(task);
   const result = processLeveling(user.level, user.xp, xpGained);
   
@@ -94,6 +94,7 @@ export const updateProfileOnCompletion = (
       level: result.level,
       xp: result.xp
     },
-    leveledUp: result.leveledUp
+    leveledUp: result.leveledUp,
+    xpGained
   };
 };

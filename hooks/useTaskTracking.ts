@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, UserProfile } from '../types';
 import { updateProfileOnCompletion } from '../services/levelService';
@@ -130,7 +129,7 @@ export function useTaskTracking() {
       } catch (e) {}
     }
     
-    const { user: updatedUser, leveledUp } = updateProfileOnCompletion(currentUser, finishedTask);
+    const { user: updatedUser, leveledUp, xpGained } = updateProfileOnCompletion(currentUser, finishedTask);
     if (leveledUp) {
       setTimeout(() => {
         playLevelUpSound();
@@ -140,7 +139,7 @@ export function useTaskTracking() {
     
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
     window.dispatchEvent(new CustomEvent('user-profile-updated', { 
-      detail: { ...updatedUser, leveledUp } 
+      detail: { ...updatedUser, leveledUp, xpGained, streak: finishedTask.streak } 
     }));
   }, []);
 
