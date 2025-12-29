@@ -76,10 +76,10 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
         setUser({
           name: userData.name || 'Explorer',
           icon: userData.icon || 'F',
-          level: userData.level || 1,
-          xp: userData.xp || 0
+          level: Number(userData.level) || 1,
+          xp: Number(userData.xp) || 0
         });
-        setNewName(userData.name);
+        setNewName(userData.name || 'Explorer');
       } catch (e) {
       }
     }
@@ -88,7 +88,19 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
   useEffect(() => {
     syncUserFromStorage();
     setMotivation(getRandomQuote());
-    const handleProfileUpdate = (e: any) => { if (e.detail) setUser(e.detail); };
+    const handleProfileUpdate = (e: any) => { 
+      if (e.detail) {
+        // Sanitize incoming payload to ensure it matches UserProfile exactly
+        const updated = e.detail.user || e.detail;
+        setUser(prev => ({
+          ...prev,
+          name: updated.name || prev.name,
+          level: Number(updated.level) || prev.level,
+          xp: Number(updated.xp) || prev.xp,
+          icon: updated.icon || prev.icon
+        }));
+      }
+    };
     window.addEventListener('user-profile-updated', handleProfileUpdate);
     return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
   }, [getRandomQuote, syncUserFromStorage]);
@@ -103,9 +115,13 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
   };
 
   const refreshMotivation = () => setMotivation(getRandomQuote());
+  
+  // Defensive XP Math
   const xpToNext = getXPToNextLevel(user.level);
-  const xpPercentage = Math.round((user.xp / xpToNext) * 100);
-
+  const rawXpPercentage = (user.xp / xpToNext) * 100;
+  const xpPercentage = isFinite(rawXpPercentage) ? Math.round(rawXpPercentage) : 0;
+  console.log("curr exp: " + user.xp);
+  console.log("exp to next: " + xpToNext);
   return (
     <>
       <header className="px-5 pt-6 pb-4 flex items-center justify-between">

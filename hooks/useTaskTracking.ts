@@ -112,10 +112,24 @@ export function useTaskTracking() {
     setDailyTasksCompleted(prev => prev + 1);
     playCompletionSound();
     if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
-    const savedUser = localStorage.getItem(STORAGE_KEY_USER);
-    const currentUser: UserProfile = savedUser 
-      ? JSON.parse(savedUser) 
-      : { name: 'Explorer', icon: 'F', level: 1, xp: 0 };
+    
+    const savedUserStr = localStorage.getItem(STORAGE_KEY_USER);
+    let currentUser: UserProfile = { name: 'Explorer', icon: 'F', level: 1, xp: 0 };
+    
+    if (savedUserStr) {
+      try {
+        const parsed = JSON.parse(savedUserStr);
+        if (parsed) {
+          currentUser = {
+            ...currentUser,
+            ...parsed,
+            level: Number(parsed.level) || 1,
+            xp: Number(parsed.xp) || 0
+          };
+        }
+      } catch (e) {}
+    }
+    
     const { user: updatedUser, leveledUp } = updateProfileOnCompletion(currentUser, finishedTask);
     if (leveledUp) {
       setTimeout(() => {
@@ -123,8 +137,11 @@ export function useTaskTracking() {
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 300]);
       }, 500);
     }
+    
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
-    window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: { ...updatedUser, leveledUp } }));
+    window.dispatchEvent(new CustomEvent('user-profile-updated', { 
+      detail: { ...updatedUser, leveledUp } 
+    }));
   }, []);
 
   useEffect(() => {
