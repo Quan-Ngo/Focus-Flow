@@ -1,4 +1,3 @@
-
 const CACHE_NAME = 'focusflow-v8-update-ready';
 
 // 1. Critical assets for the app shell
@@ -27,14 +26,12 @@ const ESM_DEPS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[FocusFlow SW] Installing & Caching Shell');
       return Promise.allSettled([
-        ...CORE_ASSETS.map(url => cache.add(url).catch(e => console.error(`Failed to cache ${url}:`, e))),
-        ...ESM_DEPS.map(url => cache.add(url).catch(e => console.error(`Failed to cache dep ${url}:`, e)))
+        ...CORE_ASSETS.map(url => cache.add(url).catch(e => {})),
+        ...ESM_DEPS.map(url => cache.add(url).catch(e => {}))
       ]);
     })
   );
-  // We no longer skipWaiting here automatically to allow the UI to control the transition
 });
 
 self.addEventListener('activate', (event) => {

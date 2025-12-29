@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Achievement, Task } from '../types';
 
@@ -57,7 +56,6 @@ export function useAchievements(
       try {
         return JSON.parse(saved);
       } catch (e) {
-        console.error("Failed to parse achievements", e);
       }
     }
     return {};

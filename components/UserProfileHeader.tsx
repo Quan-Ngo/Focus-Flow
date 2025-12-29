@@ -1,10 +1,15 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserProfile } from '../types';
-import { UserIcon, LightBulbIcon, TrophyIcon, DownloadIcon, UploadIcon } from './Icons';
+import { UserIcon, LightBulbIcon, TrophyIcon, DownloadIcon, UploadIcon, FireIcon, SparklesIcon } from './Icons';
 import { getXPToNextLevel } from '../services/levelService';
 
 const STORAGE_KEY_USER = 'focusflow_user';
+
+// --- DEBUG TOGGLE ---
+// Set to false to visually hide debug buttons in the settings panel
+const SHOW_DEBUG_CONTROLS = true; 
+// -------------------
 
 const LOCAL_QUOTES = [
   "Small steps lead to big results.",
@@ -33,17 +38,23 @@ interface UserProfileHeaderProps {
   onOpenAchievements: () => void;
   onExportData: () => void;
   onImportData: (file: File) => void;
+  onDebugResetDay?: () => void;
+  onDebugUnlockAchievement?: () => void;
 }
 
-export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ 
-  completedCount, 
-  totalCount, 
-  progressPercentage,
-  earnedCount,
-  onOpenAchievements,
-  onExportData,
-  onImportData
-}) => {
+export const UserProfileHeader: React.FC<UserProfileHeaderProps> = (props) => {
+  const { 
+    completedCount, 
+    totalCount, 
+    progressPercentage,
+    earnedCount,
+    onOpenAchievements,
+    onExportData,
+    onImportData,
+    onDebugResetDay,
+    onDebugUnlockAchievement
+  } = props;
+
   const [user, setUser] = useState<UserProfile>({ name: 'Explorer', icon: 'F', level: 1, xp: 0 });
   const [isEditingName, setIsEditingName] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -70,7 +81,6 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         });
         setNewName(userData.name);
       } catch (e) {
-        console.error("Failed to parse user", e);
       }
     }
   }, []);
@@ -78,10 +88,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   useEffect(() => {
     syncUserFromStorage();
     setMotivation(getRandomQuote());
-
-    const handleProfileUpdate = (e: any) => {
-      if (e.detail) setUser(e.detail);
-    };
+    const handleProfileUpdate = (e: any) => { if (e.detail) setUser(e.detail); };
     window.addEventListener('user-profile-updated', handleProfileUpdate);
     return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
   }, [getRandomQuote, syncUserFromStorage]);
@@ -96,7 +103,6 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   };
 
   const refreshMotivation = () => setMotivation(getRandomQuote());
-
   const xpToNext = getXPToNextLevel(user.level);
   const xpPercentage = Math.round((user.xp / xpToNext) * 100);
 
@@ -140,32 +146,21 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       </header>
 
       {showSettings && (
-        <div className="mx-5 mb-4 p-5 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="mx-5 mb-4 p-5 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-[100] relative">
           <div className="flex items-center justify-between mb-4">
              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Settings & Data</h4>
-             <button 
-                onClick={() => setIsEditingName(!isEditingName)} 
-                className="text-[10px] font-black text-purple-600 uppercase tracking-widest"
-              >
+             <button onClick={() => setIsEditingName(!isEditingName)} className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
                 {isEditingName ? 'Save' : 'Edit Name'}
               </button>
           </div>
 
           {isEditingName && (
             <div className="mb-4 flex items-center gap-2 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100">
-              <input 
-                type="text" 
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="flex-grow text-sm font-bold focus:outline-none bg-transparent"
-                autoFocus
-                onBlur={handleUpdateName}
-                onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()}
-              />
+              <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="flex-grow text-sm font-bold focus:outline-none bg-transparent" autoFocus onBlur={handleUpdateName} onKeyDown={(e) => e.key === 'Enter' && handleUpdateName()} />
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-3">
              <button onClick={onExportData} className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group">
                 <DownloadIcon className="w-4 h-4 text-slate-400 group-hover:text-purple-500" />
                 <span className="text-xs font-bold text-slate-600">Backup</span>
@@ -174,11 +169,40 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
                 <UploadIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
                 <span className="text-xs font-bold text-slate-600">Restore</span>
              </button>
-             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => {
-               const file = e.target.files?.[0];
-               if (file) onImportData(file);
-             }} />
+             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => { const file = e.target.files?.[0]; if (file) onImportData(file); }} />
           </div>
+
+          {SHOW_DEBUG_CONTROLS && (
+            <div className="space-y-2 pt-2 border-t border-slate-50">
+              <h4 className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Debug Actions</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => {
+                    if (onDebugResetDay) {
+                      onDebugResetDay();
+                      setShowSettings(false);
+                    }
+                  }} 
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-2xl transition-colors group"
+                >
+                  <FireIcon className="w-4 h-4" />
+                  <span className="text-[10px] font-bold uppercase">Reset Day</span>
+                </button>
+                <button 
+                  onClick={() => {
+                    if (onDebugUnlockAchievement) {
+                      onDebugUnlockAchievement();
+                      setShowSettings(false);
+                    }
+                  }} 
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-2xl transition-colors group"
+                >
+                  <SparklesIcon className="w-4 h-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-tight">Unlock Ach</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -192,31 +216,18 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-extrabold leading-tight truncate">Hi, {user.name}</h2>
               </div>
-              <div 
-                onClick={() => setShowXpDetails(!showXpDetails)}
-                className="flex flex-col cursor-pointer group active:scale-95 transition-transform w-full overflow-hidden"
-              >
+              <div onClick={() => setShowXpDetails(!showXpDetails)} className="flex flex-col cursor-pointer group active:scale-95 transition-transform w-full overflow-hidden">
                 <div className="flex items-baseline overflow-hidden">
-                  <span className="text-3xl sm:text-4xl font-black drop-shadow-sm whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
-                    Level {user.level}
-                  </span>
+                  <span className="text-3xl sm:text-4xl font-black drop-shadow-sm whitespace-nowrap overflow-hidden text-ellipsis leading-tight">Level {user.level}</span>
                 </div>
-                {!showXpDetails && (
-                   <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mt-1 animate-pulse whitespace-nowrap">Tap for progress</p>
-                )}
+                {!showXpDetails && <p className="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em] mt-1 animate-pulse whitespace-nowrap">Tap for progress</p>}
               </div>
             </div>
 
             <div className="relative w-16 h-16 shrink-0">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle className="text-white/20 stroke-current" strokeWidth="10" fill="transparent" r="40" cx="50" cy="50" />
-                <circle 
-                  className="text-white stroke-current transition-all duration-1000 ease-out" 
-                  strokeWidth="10" 
-                  strokeDasharray={2 * Math.PI * 40}
-                  strokeDashoffset={2 * Math.PI * 40 * (1 - progressPercentage / 100)}
-                  strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50" 
-                />
+                <circle className="text-white stroke-current transition-all duration-1000 ease-out" strokeWidth="10" strokeDasharray={2 * Math.PI * 40} strokeDashoffset={2 * Math.PI * 40 * (1 - progressPercentage / 100)} strokeLinecap="round" fill="transparent" r="40" cx="50" cy="50" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center text-xs font-bold">{progressPercentage}%</div>
             </div>
@@ -229,10 +240,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
                   <span className="text-[10px] font-black text-white">{xpPercentage}% to Level {user.level + 1}</span>
                </div>
                <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700"
-                    style={{ width: `${xpPercentage}%` }}
-                  ></div>
+                  <div className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700" style={{ width: `${xpPercentage}%` }}></div>
                </div>
             </div>
           )}

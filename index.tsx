@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -9,7 +8,6 @@ export let swRegistration: ServiceWorkerRegistration | null = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(registration => {
-      console.log('FocusFlow SW registered: ', registration.scope);
       swRegistration = registration;
       
       // Check for updates every 30 minutes in the background
@@ -18,7 +16,7 @@ if ('serviceWorker' in navigator) {
       }, 1000 * 60 * 30);
 
     }).catch(err => {
-      console.log('FocusFlow SW registration failed: ', err);
+      // SW registration failed
     });
   });
 

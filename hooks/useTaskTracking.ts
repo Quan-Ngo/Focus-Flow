@@ -1,7 +1,7 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, UserProfile } from '../types';
 import { updateProfileOnCompletion } from '../services/levelService';
+import { STORAGE_KEY_LAST_DATE } from './useDateChangeDetection';
 
 const STORAGE_KEY_TASKS = 'focusflow_tasks';
 const STORAGE_KEY_TOTAL_TIME = 'focusflow_total_time';
@@ -35,7 +35,6 @@ const startBackgroundKeepAlive = () => {
       silentOscillator.start();
     }
   } catch (e) {
-    console.warn("Background audio initialization failed", e);
   }
 };
 
@@ -77,7 +76,6 @@ const playCompletionSound = () => {
     playTone(880, now, 0.1);
     playTone(1108.73, now + 0.1, 0.08);
   } catch (e) {
-    console.warn("Audio playback failed", e);
   }
 };
 
@@ -108,62 +106,45 @@ export function useTaskTracking() {
   const [dailyTasksCompleted, setDailyTasksCompleted] = useState<number>(0);
   const lastTickRef = useRef<number>(Date.now());
 
-  // Helper to safely update profile and stats on task completion
   const creditCompletion = useCallback((finishedTask: Task) => {
     setLifetimeTasksCompleted(prev => prev + 1);
     setDailyTasksCompleted(prev => prev + 1);
-
     playCompletionSound();
     if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
-
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
     const currentUser: UserProfile = savedUser 
       ? JSON.parse(savedUser) 
       : { name: 'Explorer', icon: 'F', level: 1, xp: 0 };
-
     const { user: updatedUser, leveledUp } = updateProfileOnCompletion(currentUser, finishedTask);
-    
     if (leveledUp) {
       setTimeout(() => {
         playLevelUpSound();
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 300]);
       }, 500);
     }
-
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
-    window.dispatchEvent(new CustomEvent('user-profile-updated', { 
-      detail: { ...updatedUser, leveledUp } 
-    }));
+    window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: { ...updatedUser, leveledUp } }));
   }, []);
 
-  // Initialize from storage
   useEffect(() => {
     const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS);
     if (savedTasks) {
       try {
         const parsedTasks = JSON.parse(savedTasks);
-        setTasks(parsedTasks); // Restoration: keep isRunning state
-      } catch (e) { console.error("Failed to parse tasks", e); }
+        setTasks(parsedTasks);
+      } catch (e) { }
     }
-
     const savedLastTick = localStorage.getItem(STORAGE_KEY_LAST_TICK);
-    if (savedLastTick) {
-      lastTickRef.current = parseInt(savedLastTick);
-    } else {
-      lastTickRef.current = Date.now();
-    }
-
+    if (savedLastTick) lastTickRef.current = parseInt(savedLastTick);
+    else lastTickRef.current = Date.now();
     const savedTime = localStorage.getItem(STORAGE_KEY_TOTAL_TIME);
     if (savedTime) setTotalSecondsSpent(parseInt(savedTime) || 0);
-
     const savedCompletions = localStorage.getItem(STORAGE_KEY_LIFETIME_COMPLETED);
     if (savedCompletions) setLifetimeTasksCompleted(parseInt(savedCompletions) || 0);
-
     const savedDaily = localStorage.getItem(STORAGE_KEY_DAILY_COMPLETED);
     if (savedDaily) setDailyTasksCompleted(parseInt(savedDaily) || 0);
   }, []);
 
-  // Save changes to local storage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
   }, [tasks]);
@@ -174,76 +155,46 @@ export function useTaskTracking() {
     localStorage.setItem(STORAGE_KEY_DAILY_COMPLETED, dailyTasksCompleted.toString());
   }, [totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted]);
 
-  // Main tick logic
   const tick = useCallback(() => {
     const now = Date.now();
     const lastTick = lastTickRef.current;
     lastTickRef.current = now;
     localStorage.setItem(STORAGE_KEY_LAST_TICK, now.toString());
-
     setTasks(currentTasks => {
       let activeSecondsToAdd = 0;
       let anyStillRunning = false;
       const finishedTasksInThisTick: Task[] = [];
-
       const nextTasks = currentTasks.map(task => {
         if (!task.isRunning || task.completed || !task.timerEndTime) return task;
-
         const taskEnd = task.timerEndTime;
-        
-        // Calculate overlap of 'away time' with this specific task's timer
         const activeEnd = Math.min(now, taskEnd);
         const overlapMs = Math.max(0, activeEnd - lastTick);
         const overlapSeconds = overlapMs / 1000;
-        
-        // Accumulate unique focus seconds (don't double-count if multiple tasks run)
         activeSecondsToAdd = Math.max(activeSecondsToAdd, overlapSeconds);
-
         const msRemaining = taskEnd - now;
         const secondsRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
-
-        // Task finished
         if (secondsRemaining <= 0) {
           const updatedTask = { ...task, remainingSeconds: 0, isRunning: false, completed: true, timerEndTime: undefined };
           finishedTasksInThisTick.push(updatedTask);
           return updatedTask;
         }
-
         anyStillRunning = true;
         return { ...task, remainingSeconds: secondsRemaining };
       });
-
-      // Side effects handled OUTSIDE map but inside tick
-      if (activeSecondsToAdd > 0) {
-        setTotalSecondsSpent(prev => prev + Math.round(activeSecondsToAdd));
-      }
-
-      // Process completions
-      if (finishedTasksInThisTick.length > 0) {
-        // We handle side effects like XP gain here. 
-        // Note: creditCompletion updates other states, but since they are processed
-        // in the next React render cycle, this is safe for a tick.
-        finishedTasksInThisTick.forEach(t => creditCompletion(t));
-      }
-
+      if (activeSecondsToAdd > 0) setTotalSecondsSpent(prev => prev + Math.round(activeSecondsToAdd));
+      if (finishedTasksInThisTick.length > 0) finishedTasksInThisTick.forEach(t => creditCompletion(t));
       if (!anyStillRunning) stopBackgroundKeepAlive();
       return nextTasks;
     });
   }, [creditCompletion]);
 
-  // High-frequency tick
   useEffect(() => {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [tick]);
 
-  // Catch up when app comes to foreground
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        tick();
-      }
-    };
+    const handleVisibilityChange = () => { if (document.visibilityState === 'visible') tick(); };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [tick]);
@@ -251,16 +202,7 @@ export function useTaskTracking() {
   const addTask = (title: string, hours: number, minutes: number, seconds: number) => {
     const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
     const hasDuration = totalSeconds > 0;
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      title,
-      completed: false,
-      createdAt: Date.now(),
-      duration: hasDuration ? totalSeconds / 60 : undefined,
-      remainingSeconds: hasDuration ? totalSeconds : undefined,
-      isRunning: false,
-      streak: 0,
-    };
+    const newTask: Task = { id: crypto.randomUUID(), title, completed: false, createdAt: Date.now(), duration: hasDuration ? totalSeconds / 60 : undefined, remainingSeconds: hasDuration ? totalSeconds : undefined, isRunning: false, streak: 0 };
     setTasks(prev => [newTask, ...prev]);
   };
 
@@ -268,9 +210,7 @@ export function useTaskTracking() {
     setTasks(prev => prev.map(task => {
       if (task.id === id) {
         const nextCompleted = !task.completed;
-        if (nextCompleted) {
-          creditCompletion(task);
-        }
+        if (nextCompleted) creditCompletion(task);
         return { ...task, completed: nextCompleted, isRunning: false, timerEndTime: undefined };
       }
       return task;
@@ -281,14 +221,12 @@ export function useTaskTracking() {
     setTasks(prev => {
       const targetTask = prev.find(t => t.id === id);
       if (!targetTask) return prev;
-
       const isStart = !targetTask.isRunning;
       if (isStart) {
         startBackgroundKeepAlive();
         lastTickRef.current = Date.now();
         localStorage.setItem(STORAGE_KEY_LAST_TICK, Date.now().toString());
       }
-
       const nextTasks = prev.map(task => {
         if (task.id === id && !task.completed) {
           const nextRunning = !task.isRunning;
@@ -297,7 +235,6 @@ export function useTaskTracking() {
         }
         return task;
       });
-
       if (!nextTasks.some(t => t.isRunning)) stopBackgroundKeepAlive();
       return nextTasks;
     });
@@ -312,13 +249,21 @@ export function useTaskTracking() {
   };
 
   const processNewDay = useCallback((daysPassed: number) => {
+    const today = new Date().toLocaleDateString('en-CA');
+    localStorage.setItem(STORAGE_KEY_LAST_DATE, today);
+    
     setDailyTasksCompleted(0);
+    
     setTasks(prev => {
       stopBackgroundKeepAlive();
-      return prev.map(task => {
+      
+      const result = prev.map(task => {
         let newStreak = task.streak || 0;
-        if (daysPassed === 1 && task.completed) newStreak += 1;
-        else if (daysPassed > 1) newStreak = 0; // Broke streak
+        if (daysPassed === 1 && task.completed) {
+          newStreak += 1;
+        } else if (daysPassed > 1) {
+          newStreak = 0;
+        }
         
         return { 
           ...task, 
@@ -329,23 +274,16 @@ export function useTaskTracking() {
           remainingSeconds: task.duration ? Math.round(task.duration * 60) : undefined 
         };
       });
+      
+      return [...result]; 
     });
   }, []);
 
   const exportData = () => {
-    const data = {
-      tasks, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted,
-      achievements: JSON.parse(localStorage.getItem('focusflow_achievements') || '{}'),
-      user: JSON.parse(localStorage.getItem(STORAGE_KEY_USER) || '{"name":"Explorer","level":1,"xp":0}'),
-      version: '1.2.7'
-    };
+    const data = { tasks, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted, achievements: JSON.parse(localStorage.getItem('focusflow_achievements') || '{}'), user: JSON.parse(localStorage.getItem(STORAGE_KEY_USER) || '{"name":"Explorer","level":1,"xp":0}'), version: '1.2.7' };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `focusflow-backup-${new Date().toLocaleDateString('en-CA')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = `focusflow-backup-${new Date().toLocaleDateString('en-CA')}.json`; a.click(); URL.revokeObjectURL(url);
   };
 
   const importData = (file: File) => {
@@ -354,23 +292,14 @@ export function useTaskTracking() {
       try {
         const data = JSON.parse(e.target?.result as string);
         if (data.tasks) {
-          setTasks(data.tasks);
-          setTotalSecondsSpent(data.totalSecondsSpent || 0);
-          setLifetimeTasksCompleted(data.lifetimeTasksCompleted || 0);
-          setDailyTasksCompleted(data.dailyTasksCompleted || 0);
-          localStorage.setItem('focusflow_achievements', JSON.stringify(data.achievements || {}));
-          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user || { name: 'Explorer', level: 1, xp: 0 }));
-          alert('Data restored successfully!');
-          window.location.reload();
+          setTasks(data.tasks); setTotalSecondsSpent(data.totalSecondsSpent || 0); setLifetimeTasksCompleted(data.lifetimeTasksCompleted || 0); setDailyTasksCompleted(data.dailyTasksCompleted || 0);
+          localStorage.setItem('focusflow_achievements', JSON.stringify(data.achievements || {})); localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user || { name: 'Explorer', level: 1, xp: 0 }));
+          alert('Data restored successfully!'); window.location.reload();
         }
       } catch (err) { alert('Invalid backup file'); }
     };
     reader.readAsText(file);
   };
 
-  return { 
-    tasks, setTasks, addTask, toggleTask, toggleTimer, deleteTask, 
-    processNewDay, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted, 
-    exportData, importData 
-  };
+  return { tasks, setTasks, addTask, toggleTask, toggleTimer, deleteTask, processNewDay, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted, exportData, importData };
 }

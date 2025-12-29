@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useDateChangeDetection } from './hooks/useDateChangeDetection';
 import { useTaskTracking } from './hooks/useTaskTracking';
@@ -86,7 +85,8 @@ export default function App() {
     achievements, 
     earnedCount, 
     newlyUnlocked, 
-    clearNewlyUnlocked 
+    clearNewlyUnlocked,
+    debugUnlockNext 
   } = useAchievements(tasks, totalSecondsSpent, lifetimeTasksCompleted, dailyTasksCompleted, currentLevel);
 
   useDateChangeDetection((oldDate, newDate) => {
@@ -160,6 +160,10 @@ export default function App() {
         onOpenAchievements={() => setIsAchievementPanelOpen(true)}
         onExportData={exportData}
         onImportData={importData}
+        onDebugResetDay={() => {
+          processNewDay(1);
+        }}
+        onDebugUnlockAchievement={debugUnlockNext}
       />
 
       <TaskDashboard 

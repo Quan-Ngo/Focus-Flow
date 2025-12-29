@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback } from 'react';
 
 export const STORAGE_KEY_LAST_DATE = 'focusflow_last_date';
@@ -9,7 +8,6 @@ export function useDateChangeDetection(onDateChange?: (oldDate: string, newDate:
     const storedDate = localStorage.getItem(STORAGE_KEY_LAST_DATE);
 
     if (storedDate && storedDate !== today) {
-      console.log(`[FocusFlow] Date change detected: ${storedDate} -> ${today}`);
       if (onDateChange) {
         onDateChange(storedDate, today);
       }
