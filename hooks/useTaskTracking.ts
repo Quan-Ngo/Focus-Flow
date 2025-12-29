@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, UserProfile } from '../types';
 import { updateProfileOnCompletion } from '../services/levelService';
@@ -259,8 +260,17 @@ export function useTaskTracking() {
       
       const result = prev.map(task => {
         let newStreak = task.streak || 0;
-        if (daysPassed === 1 && task.completed) {
-          newStreak += 1;
+        
+        // Streak Logic:
+        // 1. If exactly 1 day passed AND the task was completed yesterday, increment streak.
+        // 2. If exactly 1 day passed BUT the task was NOT completed, reset streak to 0.
+        // 3. If more than 1 day passed (multiple days missed), reset streak to 0.
+        if (daysPassed === 1) {
+          if (task.completed) {
+            newStreak += 1;
+          } else {
+            newStreak = 0;
+          }
         } else if (daysPassed > 1) {
           newStreak = 0;
         }
