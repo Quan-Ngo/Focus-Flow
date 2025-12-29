@@ -196,7 +196,8 @@ export function useTaskTracking() {
             ...task, 
             remainingSeconds: 0, 
             isRunning: false, 
-            completed: true, 
+            completed: true,
+            isChecked: true, // Auto-check visually
             streak: (task.streak || 0) + 1,
             timerEndTime: undefined 
           };
@@ -227,19 +228,51 @@ export function useTaskTracking() {
   const addTask = (title: string, hours: number, minutes: number, seconds: number) => {
     const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
     const hasDuration = totalSeconds > 0;
-    const newTask: Task = { id: crypto.randomUUID(), title, completed: false, createdAt: Date.now(), duration: hasDuration ? totalSeconds / 60 : undefined, remainingSeconds: hasDuration ? totalSeconds : undefined, isRunning: false, streak: 0 };
+    const newTask: Task = { 
+      id: crypto.randomUUID(), 
+      title, 
+      completed: false, 
+      isChecked: false, 
+      createdAt: Date.now(), 
+      duration: hasDuration ? totalSeconds / 60 : undefined, 
+      remainingSeconds: hasDuration ? totalSeconds : undefined, 
+      isRunning: false, 
+      streak: 0 
+    };
     setTasks(prev => [newTask, ...prev]);
   };
 
   const toggleTask = (id: string) => {
     setTasks(prev => prev.map(task => {
       if (task.id === id) {
-        const nextCompleted = !task.completed;
-        if (nextCompleted) {
-          // Increment streak immediately on manual completion
+        const nextChecked = !task.isChecked;
+
+        // UNCHECKING: user wants to mark the task as incomplete visually
+        if (!nextChecked) {
+          // If it was already marked as logically completed today
+          if (task.completed) {
+            return { 
+              ...task, 
+              isChecked: false, 
+              // Reduce streak count on visual uncheck
+              streak: Math.max(0, (task.streak || 0) - 1),
+              // DO NOT change task to incomplete logically
+              completed: true,
+              isRunning: false,
+              timerEndTime: undefined
+            };
+          }
+          // Just unchecking a task that wasn't completed yet
+          return { ...task, isChecked: false };
+        }
+
+        // CHECKING: user wants to mark the task as complete visually
+        // If not logically completed yet, this is the first completion of the day
+        if (!task.completed) {
           const updatedTask = { 
             ...task, 
             completed: true, 
+            isChecked: true,
             isRunning: false, 
             timerEndTime: undefined,
             streak: (task.streak || 0) + 1 
@@ -247,13 +280,12 @@ export function useTaskTracking() {
           creditCompletion(updatedTask);
           return updatedTask;
         }
-        // If un-completing, decrement streak back to previous state
+        
+        // If already logically completed but visually unchecked, re-checking restores streak
         return { 
           ...task, 
-          completed: false, 
-          isRunning: false, 
-          timerEndTime: undefined,
-          streak: Math.max(0, (task.streak || 0) - 1)
+          isChecked: true,
+          streak: (task.streak || 0) + 1
         };
       }
       return task;
@@ -303,13 +335,9 @@ export function useTaskTracking() {
       const result = prev.map(task => {
         let newStreak = task.streak || 0;
         
-        // Streak Logic:
-        // Since streak is now incremented on completion:
-        // 1. If exactly 1 day passed, check if the task was completed.
-        //    If NOT completed, reset streak to 0. If completed, newStreak remains (already incremented).
-        // 2. If more than 1 day passed, always reset streak to 0.
+        // Streak is lost if unchecked visually at the end of the day reset
         if (daysPassed === 1) {
-          if (!task.completed) {
+          if (!task.isChecked) {
             newStreak = 0;
           }
         } else if (daysPassed > 1) {
@@ -319,6 +347,7 @@ export function useTaskTracking() {
         return { 
           ...task, 
           completed: false, 
+          isChecked: false, // Reset visual state for new day
           isRunning: false, 
           streak: newStreak, 
           timerEndTime: undefined, 

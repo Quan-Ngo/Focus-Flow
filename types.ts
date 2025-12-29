@@ -2,7 +2,8 @@
 export interface Task {
   id: string;
   title: string;
-  completed: boolean;
+  completed: boolean; // Logical completion (XP awarded, streak counted)
+  isChecked: boolean; // Visual completion (Checkmark and strikethrough)
   createdAt: number;
   duration?: number; // Original duration in minutes
   remainingSeconds?: number; // Current remaining time in seconds

@@ -59,7 +59,7 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
     <div 
       ref={setNodeRef}
       style={style}
-      className={`task-item group flex flex-col p-4 bg-white rounded-3xl border border-slate-100 shadow-sm ${task.completed ? 'opacity-50' : ''} ${isDragging ? 'shadow-xl scale-[1.02] ring-2 ring-purple-200' : 'active:scale-[0.98]'}`}
+      className={`task-item group flex flex-col p-4 bg-white rounded-3xl border border-slate-100 shadow-sm ${task.isChecked ? 'opacity-60' : ''} ${isDragging ? 'shadow-xl scale-[1.02] ring-2 ring-purple-200' : 'active:scale-[0.98]'}`}
     >
       <div className="flex items-center gap-3">
         {/* Drag Handle */}
@@ -74,15 +74,15 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
         <div 
           onClick={() => onToggleTask(task.id)}
           className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 cursor-pointer ${
-            task.completed ? 'bg-purple-500 border-purple-500 text-white' : 'border-slate-200 bg-white hover:border-purple-300'
+            task.isChecked ? 'bg-purple-500 border-purple-500 text-white' : 'border-slate-200 bg-white hover:border-purple-300'
           }`}
         >
-          {task.completed && <CheckIcon className="w-5 h-5" />}
+          {task.isChecked && <CheckIcon className="w-5 h-5" />}
         </div>
         
         <div className="flex-grow min-w-0 cursor-pointer" onClick={() => onToggleTask(task.id)}>
           <div className="flex items-center gap-2 py-1.5">
-            <span className={`font-semibold text-[15px] leading-tight truncate transition-all ${task.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+            <span className={`font-semibold text-[15px] leading-tight truncate transition-all ${task.isChecked ? 'line-through text-slate-400' : 'text-slate-700'}`}>
               {task.title}
             </span>
             {task.streak > 1 && (

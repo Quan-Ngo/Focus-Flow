@@ -8,7 +8,7 @@ const STORAGE_KEY_USER = 'focusflow_user';
 
 // --- DEBUG TOGGLE ---
 // Set to false to visually hide debug buttons in the settings panel
-const SHOW_DEBUG_CONTROLS = false; 
+const SHOW_DEBUG_CONTROLS = true; 
 // -------------------
 
 const LOCAL_QUOTES = [
