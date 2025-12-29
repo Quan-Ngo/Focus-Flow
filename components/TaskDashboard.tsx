@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   DndContext, 
@@ -86,7 +85,7 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
             <span className={`font-semibold text-[15px] leading-tight truncate transition-all ${task.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
               {task.title}
             </span>
-            {task.streak > 0 && (
+            {task.streak > 1 && (
               <div className={`flex items-center gap-1 px-2.5 py-1 ${streakStyle.bg} rounded-full shrink-0 shadow-lg ${streakStyle.shadow} transform scale-90 origin-left ${streakStyle.animation}`}>
                 <FireIcon className="w-3 h-3 text-white" />
                 <span className="text-[10px] font-black text-white leading-none tracking-tighter">

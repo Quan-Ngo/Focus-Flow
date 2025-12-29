@@ -47,7 +47,7 @@ export const XPCompletionToast: React.FC<XPCompletionToastProps> = ({
           <p className="text-sm font-black tracking-tight leading-none">
             +{xpGained} XP Earned!
           </p>
-          {streak > 0 && (
+          {streak > 1 && (
             <div className="flex items-center gap-1 mt-1">
               <FireIcon className="w-3 h-3 text-orange-400" />
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">

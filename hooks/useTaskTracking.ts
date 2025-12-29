@@ -191,7 +191,15 @@ export function useTaskTracking() {
         const msRemaining = taskEnd - now;
         const secondsRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
         if (secondsRemaining <= 0) {
-          const updatedTask = { ...task, remainingSeconds: 0, isRunning: false, completed: true, timerEndTime: undefined };
+          // Increment streak immediately on completion
+          const updatedTask = { 
+            ...task, 
+            remainingSeconds: 0, 
+            isRunning: false, 
+            completed: true, 
+            streak: (task.streak || 0) + 1,
+            timerEndTime: undefined 
+          };
           finishedTasksInThisTick.push(updatedTask);
           return updatedTask;
         }
@@ -227,8 +235,26 @@ export function useTaskTracking() {
     setTasks(prev => prev.map(task => {
       if (task.id === id) {
         const nextCompleted = !task.completed;
-        if (nextCompleted) creditCompletion(task);
-        return { ...task, completed: nextCompleted, isRunning: false, timerEndTime: undefined };
+        if (nextCompleted) {
+          // Increment streak immediately on manual completion
+          const updatedTask = { 
+            ...task, 
+            completed: true, 
+            isRunning: false, 
+            timerEndTime: undefined,
+            streak: (task.streak || 0) + 1 
+          };
+          creditCompletion(updatedTask);
+          return updatedTask;
+        }
+        // If un-completing, decrement streak back to previous state
+        return { 
+          ...task, 
+          completed: false, 
+          isRunning: false, 
+          timerEndTime: undefined,
+          streak: Math.max(0, (task.streak || 0) - 1)
+        };
       }
       return task;
     }));
@@ -278,13 +304,12 @@ export function useTaskTracking() {
         let newStreak = task.streak || 0;
         
         // Streak Logic:
-        // 1. If exactly 1 day passed AND the task was completed yesterday, increment streak.
-        // 2. If exactly 1 day passed BUT the task was NOT completed, reset streak to 0.
-        // 3. If more than 1 day passed (multiple days missed), reset streak to 0.
+        // Since streak is now incremented on completion:
+        // 1. If exactly 1 day passed, check if the task was completed.
+        //    If NOT completed, reset streak to 0. If completed, newStreak remains (already incremented).
+        // 2. If more than 1 day passed, always reset streak to 0.
         if (daysPassed === 1) {
-          if (task.completed) {
-            newStreak += 1;
-          } else {
+          if (!task.completed) {
             newStreak = 0;
           }
         } else if (daysPassed > 1) {
