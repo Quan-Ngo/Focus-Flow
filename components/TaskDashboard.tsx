@@ -61,19 +61,19 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
       style={style}
       className={`task-item group flex flex-col p-4 bg-white rounded-3xl border border-slate-100 shadow-sm ${task.isChecked ? 'opacity-60' : ''} ${isDragging ? 'shadow-xl scale-[1.02] ring-2 ring-purple-200' : 'active:scale-[0.98]'}`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         {/* Drag Handle */}
         <div 
           {...attributes} 
           {...listeners} 
-          className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-300 hover:text-slate-400 transition-colors"
+          className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-300 hover:text-slate-400 transition-colors mt-1"
         >
           <DragHandleIcon className="w-5 h-5" />
         </div>
 
         <div 
           onClick={() => onToggleTask(task.id)}
-          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 cursor-pointer mt-0.5 ${
             task.isChecked ? 'bg-purple-500 border-purple-500 text-white' : 'border-slate-200 bg-white hover:border-purple-300'
           }`}
         >
@@ -81,8 +81,8 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
         </div>
         
         <div className="flex-grow min-w-0 cursor-pointer" onClick={() => onToggleTask(task.id)}>
-          <div className="flex items-center gap-2 py-1.5">
-            <span className={`font-semibold text-[15px] leading-tight truncate transition-all ${task.isChecked ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+          <div className="flex items-start gap-2 py-1.5 flex-wrap">
+            <span className={`font-semibold text-[15px] leading-tight transition-all break-words whitespace-normal ${task.isChecked ? 'line-through text-slate-400' : 'text-slate-700'}`}>
               {task.title}
             </span>
             {task.streak > 1 && (
@@ -102,7 +102,7 @@ const SortableTaskItem = ({ task, onToggleTask, onToggleTimer, onDeleteRequest, 
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 mt-0.5">
           {task.duration && !task.completed && (
             <button 
               onClick={(e) => { e.stopPropagation(); onToggleTimer(task.id); }}
