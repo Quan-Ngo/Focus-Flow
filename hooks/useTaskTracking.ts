@@ -191,6 +191,26 @@ export function useTaskTracking() {
         const msRemaining = taskEnd - now;
         const secondsRemaining = Math.max(0, Math.ceil(msRemaining / 1000));
         if (secondsRemaining <= 0) {
+          // Timer Completion Check for Notification
+          if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') {
+             if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(reg => {
+                  reg.showNotification('FocusFlow', {
+                    body: `"${task.title}" is complete!`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3593/3593444.png',
+                    tag: `timer-${task.id}`
+                  });
+                }).catch(() => {});
+             } else {
+                try {
+                  new Notification('FocusFlow', {
+                    body: `"${task.title}" is complete!`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3593/3593444.png'
+                  });
+                } catch (e) {}
+             }
+          }
+
           // Increment streak immediately on completion
           const updatedTask = { 
             ...task, 

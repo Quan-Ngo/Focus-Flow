@@ -8,6 +8,7 @@ import { AchievementPanel } from './components/AchievementPanel';
 import { AchievementUnlockToast } from './components/AchievementUnlockToast';
 import { LevelUpCelebration } from './components/LevelUpCelebration';
 import { XPCompletionToast } from './components/XPCompletionToast';
+import { NotificationPermissionRequest } from './components/NotificationPermissionRequest';
 import { SparklesIcon } from './components/Icons';
 
 const APP_VERSION = '1.2.0'; 
@@ -132,6 +133,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-md mx-auto bg-slate-50 relative overflow-hidden shadow-2xl border-x border-slate-100">
+      <NotificationPermissionRequest />
+
       {isOffline && (
         <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 text-center sticky top-0 z-[200] shadow-lg border-b border-amber-400">
           FocusFlow Offline Mode • Data is Private
